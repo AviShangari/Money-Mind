@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+*.env
+
+# IDE
+.vscode/
+.idea/
+
+# Byte-compiled
+*.egg-info/
+.eggs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Pytest files
+.pytest_cache/
+
+# Alembic
+!alembic/versions/README             # Optional: keep docs only if you add them
+
+# Uploaded files (PDFs, temp storage)
+app/uploads/
+*.pdf
+
+# Build artifacts
+dist/
+build/
