@@ -1,0 +1,63 @@
+:root {
+  /* Premium Dark Palette */
+  --bg-primary: #0f172a;       /* Deep Slate Blue - Main Background */
+  --bg-secondary: #1e293b;     /* Lighter Slate - Cards/Sidebar */
+  --bg-accent: #334155;        /* Hover States */
+  
+  --text-primary: #f8fafc;     /* White/Off-white */
+  --text-secondary: #94a3b8;   /* Muted Text */
+  
+  --primary: #3b82f6;          /* Vibrant Blue - Primary Actions */
+  --primary-hover: #2563eb;
+  
+  --success: #10b981;          /* Emerald Green */
+  --danger: #ef4444;           /* Red */
+  --warning: #f59e0b;          /* Amber */
+
+  --border: #334155;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card {
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}

@@ -19,12 +19,9 @@ class GoogleLoginRequest(BaseModel):
 @router.post("/google-login")
 async def google_login(payload: GoogleLoginRequest, response: Response, db=Depends(get_db)):
     id_token = payload.id_token
-    print(f"Received login request for token: {id_token[:10]}...")
     # 1. Verify Google token
     try:
-        print("Verifying google token...")
         google_user = verify_google_token(id_token, GOOGLE_CLIENT_ID)
-        print("Token verified!")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -59,7 +56,6 @@ async def google_login(payload: GoogleLoginRequest, response: Response, db=Depen
         path="/"
     )
 
-    print("Setting cookie: ",  session.session_id)
     return {"message": "Login successful", "email": email}
 
 
@@ -87,5 +83,4 @@ def logout(
 
     # Clear cookie
     response.delete_cookie("session_id")
-    print("Logged out")
     return {"message": "Logged out"}

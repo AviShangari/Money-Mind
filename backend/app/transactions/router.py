@@ -68,5 +68,5 @@ async def upload_statement(
     return {
         "message": "PDF processed successfully",
         "transactions_created": len(inserted_ids),
-        "example_transaction": parsed_transactions[0] if parsed_transactions else None
+        "transactions": parsed_transactions
     }

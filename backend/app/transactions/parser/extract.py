@@ -15,7 +15,7 @@ def extract_text_from_pdf(file_path: str) -> str:
     with pdfplumber.open(file_path) as pdf:
         for page in pdf.pages:
             # Extract text from the page
-            page_text = page.extract_text()
+            page_text = page.extract_text(layout=True)
 
             # Some pages may return None if empty, so we guard against that
             if page_text:

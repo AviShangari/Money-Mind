@@ -17,19 +17,62 @@ function Login() {
 
 
     return (
-        <div style={{ textAlign: "center", marginTop: "100px" }}>
-            <h1>Money Mind Login</h1>
-            <button
-                onClick={redirectToGoogle}
-                style={{
-                    padding: "12px 24px",
-                    fontSize: "18px",
-                    cursor: "pointer",
-                    borderRadius: "8px",
-                }}
-            >
-                Sign in with Google
-            </button>
+        <div style={{
+            height: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%)"
+        }}>
+            <div className="glass-panel" style={{
+                padding: "3rem",
+                borderRadius: "var(--radius-lg)",
+                textAlign: "center",
+                width: "100%",
+                maxWidth: "400px",
+                boxShadow: "var(--shadow-lg)"
+            }}>
+                <div style={{
+                    marginBottom: "2rem",
+                    fontSize: "3rem"
+                }}>
+                    💸
+                </div>
+
+                <h1 style={{
+                    fontSize: "2rem",
+                    fontWeight: "700",
+                    marginBottom: "0.5rem",
+                    color: "var(--text-primary)"
+                }}>
+                    Money Mind
+                </h1>
+
+                <p style={{
+                    color: "var(--text-secondary)",
+                    marginBottom: "2.5rem"
+                }}>
+                    Master your finances with AI-powered insights.
+                </p>
+
+                <button
+                    className="btn-primary"
+                    onClick={redirectToGoogle}
+                    style={{
+                        width: "100%",
+                        fontSize: "1rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px"
+                    }}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.8-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z" />
+                    </svg>
+                    Continue with Google
+                </button>
+            </div>
         </div>
     );
 }
