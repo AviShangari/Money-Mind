@@ -17,55 +17,23 @@ function Login() {
 
 
     return (
-        <div style={{
-            height: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%)"
-        }}>
-            <div className="glass-panel" style={{
-                padding: "3rem",
-                borderRadius: "var(--radius-lg)",
-                textAlign: "center",
-                width: "100%",
-                maxWidth: "400px",
-                boxShadow: "var(--shadow-lg)"
-            }}>
-                <div style={{
-                    marginBottom: "2rem",
-                    fontSize: "3rem"
-                }}>
+        <div className="h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top_right,#1e293b_0%,#0f172a_100%)]">
+            <div className="glass-panel p-12 rounded-lg text-center w-full max-w-[400px] shadow-lg">
+                <div className="mb-8 text-5xl">
                     💸
                 </div>
 
-                <h1 style={{
-                    fontSize: "2rem",
-                    fontWeight: "700",
-                    marginBottom: "0.5rem",
-                    color: "var(--text-primary)"
-                }}>
+                <h1 className="text-3xl font-bold mb-2 text-text-primary">
                     Money Mind
                 </h1>
 
-                <p style={{
-                    color: "var(--text-secondary)",
-                    marginBottom: "2.5rem"
-                }}>
+                <p className="text-text-secondary mb-10">
                     Master your finances with AI-powered insights.
                 </p>
 
                 <button
-                    className="btn-primary"
+                    className="btn-primary w-full text-base flex items-center justify-center gap-2.5"
                     onClick={redirectToGoogle}
-                    style={{
-                        width: "100%",
-                        fontSize: "1rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px"
-                    }}
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.8-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z" />

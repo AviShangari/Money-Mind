@@ -34,26 +34,11 @@ function Transactions() {
                 },
             });
 
-            // The backend returns an example transaction, but in a real app 
-            // we probably want to fetch the full list or the backend should return the list.
-            // For now, let's assume the backend returns the count, and we might need to fetch them.
-            // BUT, looking at the router.py code:
-            // It returns: { "message": ..., "transactions_created": ..., "example_transaction": ... }
-            // It doesn't return the full list. We should fix the backend to return the list 
-            // OR fetch the list after upload. 
-            // For this specific MVP request, I'll fetch the transactions right after upload 
-            // (assuming a GET endpoint exists, or I will create one).
-
-            // Wait! The user asked to "display the transactions". 
-            // Let's modify the backend to return the list of inserted transactions for immediate display.
-
             setSuccessMsg(`Successfully processed ${res.data.transactions_created} transactions.`);
 
-            // TEMP: If the backend returns the list (we'll modify it next), we use it.
             if (res.data.transactions) {
                 setTransactions(res.data.transactions);
             } else {
-                // Fallback if backend isn't updated yet
                 setTransactions([]);
             }
 
@@ -66,40 +51,32 @@ function Transactions() {
     };
 
     return (
-        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        <div className="max-w-5xl mx-auto">
+            <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Transactions</h1>
-                    <p style={{ color: "var(--text-secondary)" }}>Manage and analyze your spending.</p>
+                    <h1 className="text-3xl mb-2 font-bold">Transactions</h1>
+                    <p className="text-text-secondary">Manage and analyze your spending.</p>
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <div className="flex gap-2.5 items-center">
                     <input
                         type="file"
                         accept="application/pdf"
                         onChange={handleFileChange}
                         id="file-upload"
-                        style={{ display: "none" }}
+                        className="hidden"
                     />
                     <label
                         htmlFor="file-upload"
-                        className="btn-primary"
-                        style={{
-                            background: "var(--bg-secondary)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                            display: "inline-block",
-                            padding: "10px 16px"
-                        }}
+                        className="bg-bg-secondary border border-border text-text-primary inline-block px-4 py-2.5 rounded-sm cursor-pointer hover:bg-bg-accent transition-colors"
                     >
                         {file ? file.name : "Select PDF"}
                     </label>
 
                     <button
-                        className="btn-primary"
+                        className="btn-primary disabled:opacity-70 disabled:cursor-not-allowed"
                         onClick={handleUpload}
                         disabled={uploading || !file}
-                        style={{ opacity: uploading ? 0.7 : 1 }}
                     >
                         {uploading ? "Parsing..." : "Upload & Parse"}
                     </button>
@@ -107,68 +84,45 @@ function Transactions() {
             </div>
 
             {error && (
-                <div style={{
-                    background: "rgba(239, 68, 68, 0.1)",
-                    color: "var(--danger)",
-                    padding: "1rem",
-                    borderRadius: "var(--radius-sm)",
-                    marginBottom: "1.5rem"
-                }}>
+                <div className="bg-danger/10 text-danger p-4 rounded-sm mb-6 border border-danger/20">
                     ⚠️ {error}
                 </div>
             )}
 
             {successMsg && (
-                <div style={{
-                    background: "rgba(16, 185, 129, 0.1)",
-                    color: "var(--success)",
-                    padding: "1rem",
-                    borderRadius: "var(--radius-sm)",
-                    marginBottom: "1.5rem"
-                }}>
+                <div className="bg-success/10 text-success p-4 rounded-sm mb-6 border border-success/20">
                     ✅ {successMsg}
                 </div>
             )}
 
-            <div className="card" style={{ overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <div className="card overflow-hidden">
+                <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid var(--border)" }}>
-                            <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Date</th>
-                            <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Description</th>
-                            <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Category</th>
-                            <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500", textAlign: "right" }}>Amount</th>
+                        <tr className="bg-white/5 border-b border-border">
+                            <th className="p-4 text-text-secondary font-medium">Date</th>
+                            <th className="p-4 text-text-secondary font-medium">Description</th>
+                            <th className="p-4 text-text-secondary font-medium">Category</th>
+                            <th className="p-4 text-text-secondary font-medium text-right">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         {transactions.length === 0 ? (
                             <tr>
-                                <td colSpan="4" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                                <td colSpan="4" className="p-12 text-center text-text-secondary">
                                     No transactions to display. Upload a statement to get started.
                                 </td>
                             </tr>
                         ) : (
                             transactions.map((txn, idx) => (
-                                <tr key={idx} style={{ borderBottom: "1px solid var(--border)" }}>
-                                    <td style={{ padding: "1rem" }}>{txn.date}</td>
-                                    <td style={{ padding: "1rem" }}>{txn.description}</td>
-                                    <td style={{ padding: "1rem" }}>
-                                        <span style={{
-                                            background: "rgba(59, 130, 246, 0.1)",
-                                            color: "var(--primary)",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            fontSize: "0.8rem"
-                                        }}>
+                                <tr key={idx} className="border-b border-border last:border-0 hover:bg-white/5 transition-colors">
+                                    <td className="p-4">{txn.date}</td>
+                                    <td className="p-4">{txn.description}</td>
+                                    <td className="p-4">
+                                        <span className="bg-brand/10 text-brand px-2 py-1 rounded text-xs font-medium">
                                             Uncategorized
                                         </span>
                                     </td>
-                                    <td style={{
-                                        padding: "1rem",
-                                        textAlign: "right",
-                                        fontWeight: "600",
-                                        color: txn.amount < 0 ? "var(--text-primary)" : "var(--success)"
-                                    }}>
+                                    <td className={`p-4 text-right font-semibold ${txn.amount < 0 ? "text-text-primary" : "text-success"}`}>
                                         {txn.amount < 0 ? "-" : "+"}${Math.abs(txn.amount).toFixed(2)}
                                     </td>
                                 </tr>

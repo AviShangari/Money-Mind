@@ -1,1 +1,23 @@
-@import "./styles/theme.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-bg-primary text-text-primary font-sans antialiased m-0;
+    }
+}
+
+@layer components {
+    .glass-panel {
+        @apply bg-slate-800/70 backdrop-blur-md border border-white/10;
+    }
+
+    .card {
+        @apply bg-bg-secondary rounded-md border border-border shadow-sm;
+    }
+
+    .btn-primary {
+        @apply bg-gradient-to-br from-brand to-brand-hover text-white px-6 py-3 rounded-sm font-semibold border-none cursor-pointer transition-all duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-brand/30;
+    }
+}

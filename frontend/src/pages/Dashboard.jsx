@@ -30,24 +30,15 @@ function Dashboard() {
     };
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-primary)" }}>
+        <div className="flex min-h-screen bg-bg-primary text-text-primary">
             {/* Sidebar */}
-            <aside style={{
-                width: "260px",
-                background: "var(--bg-secondary)",
-                borderRight: "1px solid var(--border)",
-                padding: "2rem 1.5rem",
-                display: "flex",
-                flexDirection: "column",
-                position: "fixed",
-                height: "100vh"
-            }}>
-                <div style={{ marginBottom: "3rem", display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ fontSize: "1.5rem" }}>💸</div>
-                    <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "var(--text-primary)", margin: 0 }}>Money Mind</h2>
+            <aside className="w-[260px] bg-bg-secondary border-r border-border p-8 flex flex-col fixed h-screen">
+                <div className="mb-12 flex items-center gap-2.5">
+                    <div className="text-2xl">💸</div>
+                    <h2 className="text-xl font-bold text-text-primary m-0">Money Mind</h2>
                 </div>
 
-                <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <nav className="flex-1 flex flex-col gap-2">
                     <NavButton
                         label="Overview"
                         active={activeTab === "overview"}
@@ -60,22 +51,13 @@ function Dashboard() {
                     />
                 </nav>
 
-                <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.5rem" }}>
-                    <div style={{ marginBottom: "1rem", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+                <div className="border-t border-border pt-6">
+                    <div className="mb-4 text-sm text-text-secondary truncate">
                         {userEmail}
                     </div>
                     <button
                         onClick={handleLogout}
-                        style={{
-                            background: "transparent",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-secondary)",
-                            width: "100%",
-                            padding: "10px",
-                            borderRadius: "var(--radius-sm)",
-                            cursor: "pointer",
-                            transition: "all 0.2s"
-                        }}
+                        className="bg-transparent border border-border text-text-secondary w-full p-2.5 rounded-sm cursor-pointer transition-all duration-200 hover:bg-bg-accent hover:text-text-primary"
                     >
                         Sign Out
                     </button>
@@ -83,42 +65,18 @@ function Dashboard() {
             </aside>
 
             {/* Main Content */}
-            <main style={{ marginLeft: "260px", flex: 1, display: "flex", flexDirection: "column" }}>
-                <header style={{
-                    height: "70px",
-                    borderBottom: "1px solid var(--border)",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    alignItems: "center",
-                    padding: "0 2rem",
-                    background: "rgba(15, 23, 42, 0.8)",
-                    backdropFilter: "blur(8px)",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 10
-                }}>
-                    <button
-                        onClick={handleLogout}
-                        className="btn-primary"
-                        style={{
-                            background: "transparent",
-                            border: "1px solid var(--danger)",
-                            color: "var(--danger)",
-                            padding: "8px 16px",
-                            fontSize: "0.9rem"
-                        }}
-                    >
-                        Sign Out
-                    </button>
+            <main className="ml-[260px] flex-1 flex flex-col">
+                <header className="h-[70px] border-b border-border flex justify-end items-center px-8 bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
+                    {/* Header content can go here in the future */}
                 </header>
 
-                <div style={{ padding: "3rem", flex: 1 }}>
+                <div className="p-12 flex-1">
                     {activeTab === "overview" && (
-                        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-                            <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Welcome back</h1>
-                            <p style={{ color: "var(--text-secondary)", marginBottom: "3rem" }}>Here is what's happening with your money.</p>
+                        <div className="max-w-5xl mx-auto">
+                            <h1 className="text-3xl mb-2 font-bold">Welcome back</h1>
+                            <p className="text-text-secondary mb-12">Here is what's happening with your money.</p>
 
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" }}>
+                            <div className="grid grid-cols-3 gap-6">
                                 <StatCard title="Total Balance" value="$12,450.00" trend="+2.5%" />
                                 <StatCard title="Monthly Spending" value="$1,205.00" trend="-4.1%" />
                                 <StatCard title="Savings Goal" value="$5,000.00" trend="50%" />
@@ -140,19 +98,12 @@ function NavButton({ label, active, onClick }) {
     return (
         <button
             onClick={onClick}
-            style={{
-                background: active ? "var(--primary)" : "transparent",
-                color: active ? "white" : "var(--text-secondary)",
-                border: "none",
-                textAlign: "left",
-                padding: "12px 16px",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "0.95rem",
-                fontWeight: active ? "600" : "500",
-                cursor: "pointer",
-                width: "100%",
-                transition: "all 0.2s"
-            }}
+            className={`
+                w-full text-left p-3 rounded-sm text-sm transition-all duration-200 cursor-pointer
+                ${active
+                    ? "bg-brand text-white font-semibold"
+                    : "bg-transparent text-text-secondary font-medium hover:bg-bg-accent hover:text-text-primary"}
+            `}
         >
             {label}
         </button>
@@ -160,11 +111,12 @@ function NavButton({ label, active, onClick }) {
 }
 
 function StatCard({ title, value, trend }) {
+    const isPositive = trend.startsWith("+") || trend.includes("%") && !trend.startsWith("-");
     return (
-        <div className="card" style={{ padding: "1.5rem" }}>
-            <div style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "0.5rem" }}>{title}</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: "700", marginBottom: "0.25rem" }}>{value}</div>
-            <div style={{ fontSize: "0.875rem", color: trend.startsWith("+") ? "var(--success)" : "var(--text-secondary)" }}>
+        <div className="card p-6">
+            <div className="text-text-secondary text-sm mb-2">{title}</div>
+            <div className="text-2xl font-bold mb-1 text-text-primary">{value}</div>
+            <div className={`text-sm ${isPositive ? "text-success" : "text-text-secondary"}`}>
                 {trend}
             </div>
         </div>
