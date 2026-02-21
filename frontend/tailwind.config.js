@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
@@ -8,22 +9,23 @@ export default {
         extend: {
             colors: {
                 bg: {
-                    primary: "#0f172a",
-                    secondary: "#1e293b",
-                    accent: "#334155",
+                    primary: 'var(--bg-primary)',
+                    secondary: 'var(--bg-secondary)',
+                    tertiary: 'var(--bg-tertiary)',
+                    accent: 'var(--bg-tertiary)',  // alias used for hover states
                 },
                 text: {
-                    primary: "#f8fafc",
-                    secondary: "#94a3b8",
+                    primary: 'var(--text-primary)',
+                    secondary: 'var(--text-secondary)',
                 },
                 brand: {
-                    DEFAULT: "#3b82f6",
-                    hover: "#2563eb",
+                    DEFAULT: 'var(--brand)',
+                    subtle: 'var(--brand-subtle)',
                 },
-                success: "#10b981",
-                danger: "#ef4444",
-                warning: "#f59e0b",
-                border: "#334155",
+                success: 'var(--success)',
+                danger: 'var(--danger)',
+                warning: 'var(--warning)',
+                border: 'var(--border)',
             },
             borderRadius: {
                 sm: "6px",

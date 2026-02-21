@@ -11,4 +11,7 @@ class User(Base):
     picture_url = Column(String, nullable=True)
 
     transactions = relationship("Transaction", back_populates="user")
+    bank_statements = relationship("BankStatement", back_populates="user")
+    category_overrides = relationship("CategoryOverride", back_populates="user")
+    budgets = relationship("Budget", back_populates="user")
 

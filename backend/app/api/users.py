@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Response, Cookie
 from app.users.auth_google import verify_google_token
-from app.core.config import GOOGLE_CLIENT_ID
+from app.core.config import GOOGLE_CLIENT_ID, IS_PRODUCTION
 from app.users.service import get_user_by_email, create_user
 from app.sessions.service import create_session
 from app.sessions.models import Session as SessionModel
@@ -50,8 +50,8 @@ async def google_login(payload: GoogleLoginRequest, response: Response, db=Depen
     response.set_cookie(
         key="session_id",
         value=session.session_id,
-        httponly=False,
-        secure=False,
+        httponly=IS_PRODUCTION,
+        secure=IS_PRODUCTION,
         samesite="lax",
         path="/"
     )
