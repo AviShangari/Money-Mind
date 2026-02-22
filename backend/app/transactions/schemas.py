@@ -18,6 +18,8 @@ class TransactionPreview(BaseModel):
     category: str
     category_source: str
     confidence: float
+    source: Optional[str] = None            # 'chequing' or 'credit_card'
+    transaction_type: Optional[str] = None  # 'purchase', 'payment', 'cc_payment', 'refund', etc.
 
     class Config:
         from_attributes = True
@@ -29,6 +31,9 @@ class TransactionConfirmItem(BaseModel):
     amount: Decimal
     category: str
     category_source: str
+    source: Optional[str] = None
+    transaction_type: Optional[str] = None
+    transaction_type_source: Optional[str] = None  # 'manual' when user overrode the type
 
 
 class TransactionConfirmRequest(BaseModel):

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.auth import get_current_user
 from app.core.dependencies import get_db
 from app.insights import service
-from app.insights.schemas import MonthlySummary, SpendingTrend
+from app.insights.schemas import MonthlySummary, SpendingTrend, CategoryBreakdownResponse
 from app.insights.service import latest_month_with_data
 
 router = APIRouter(prefix="/insights", tags=["insights"])
@@ -54,3 +54,13 @@ def get_trend(
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"trend": service.get_trend(db, user_id=current_user.id)}
+
+
+@router.get("/category-breakdown", response_model=CategoryBreakdownResponse)
+def get_category_breakdown(
+    current_user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return service.get_monthly_category_breakdown(db, user_id=current_user.id)

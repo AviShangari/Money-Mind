@@ -14,6 +14,8 @@ class Transaction(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     category = Column(String, nullable=False)
     category_source = Column(String, nullable=False, server_default="")
+    source = Column(String, nullable=True)            # 'chequing' or 'credit_card'
+    transaction_type = Column(String, nullable=True)  # 'purchase', 'payment', 'fee', 'interest', 'refund', 'income', 'transfer', 'cc_payment'
 
     # Relationship to user
     user = relationship("User", back_populates="transactions")

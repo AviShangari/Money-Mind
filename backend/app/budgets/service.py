@@ -3,6 +3,7 @@ from sqlalchemy import func, extract
 from app.budgets.models import Budget
 from app.budgets.schemas import BudgetCreate, BudgetUpdate, BudgetStatusResponse
 from app.transactions.models import Transaction
+from app.transactions.filters import category_spending_filter
 from decimal import Decimal
 from datetime import datetime
 
@@ -60,7 +61,7 @@ def get_budgets_status(db: Session, user_id: int, month: str | None = None) -> l
             func.sum(Transaction.amount).label('total_spent')
         ).filter(
             Transaction.user_id == user_id,
-            Transaction.amount < 0
+            category_spending_filter()
         ).group_by(
             Transaction.category,
             extract('year', Transaction.date),
@@ -124,8 +125,7 @@ def get_budgets_status(db: Session, user_id: int, month: str | None = None) -> l
         Transaction.user_id == user_id,
         extract('year', Transaction.date) == year_int,
         extract('month', Transaction.date) == month_int,
-        # Only negative amounts (withdrawals/spending) should count towards the budget limit
-        Transaction.amount < 0
+        category_spending_filter()
     ).group_by(Transaction.category).all()
 
     # Convert to a dictionary for easy lookup.

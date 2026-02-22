@@ -11,6 +11,7 @@ class BankStatement(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_hash = Column(String(64), nullable=False)  # SHA-256 hex digest
     filename = Column(String, nullable=False)
+    statement_type = Column(String, nullable=False, server_default="chequing")  # 'chequing' or 'credit_card'
     uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="bank_statements")

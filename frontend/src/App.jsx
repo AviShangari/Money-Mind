@@ -11,6 +11,7 @@ import Budgets from "./pages/Budgets";
 import Debt from "./pages/Debt";
 import Insights from "./pages/Insights";
 import Chat from "./pages/Chat";
+import Statistics from "./pages/Statistics";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
               <Route path="debt" element={<Debt />} />
               <Route path="insights" element={<Insights />} />
               <Route path="chat" element={<Chat />} />
+              <Route path="statistics" element={<Statistics />} />
             </Route>
           </Routes>
         </AuthProvider>

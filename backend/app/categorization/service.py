@@ -54,3 +54,47 @@ def store_category_override(
     db.commit()
     db.refresh(override)
     return override
+
+
+def get_type_override(db: Session, user_id: int, description: str) -> str | None:
+    """
+    Return the user's stored transaction_type override for a description, or None.
+    Uses the same case-insensitive substring match as category overrides.
+    """
+    upper = description.upper()
+    overrides = get_user_overrides(db, user_id)
+    for override in overrides:
+        if override.transaction_type and override.description_pattern.upper() in upper:
+            return override.transaction_type
+    return None
+
+
+def store_type_override(
+    db: Session, user_id: int, description_pattern: str, transaction_type: str
+) -> CategoryOverride:
+    """
+    Upsert the transaction_type on a CategoryOverride row.
+    Creates the row if it doesn't exist yet (category defaults to empty string
+    so it doesn't interfere with the category lookup).
+    """
+    existing = (
+        db.query(CategoryOverride)
+        .filter_by(user_id=user_id, description_pattern=description_pattern)
+        .first()
+    )
+    if existing:
+        existing.transaction_type = transaction_type
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    override = CategoryOverride(
+        user_id=user_id,
+        description_pattern=description_pattern,
+        category="",
+        transaction_type=transaction_type,
+    )
+    db.add(override)
+    db.commit()
+    db.refresh(override)
+    return override

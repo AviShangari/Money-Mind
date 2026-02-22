@@ -13,7 +13,8 @@ function Skeleton() {
 }
 
 export default function StatCards({ summary, loading, budgetsStatus, loadingBudgets }) {
-    const netCashFlow = summary ? Number(summary.net_cash_flow) : 0;
+    // net_cash_flow is null when the month has no chequing data (CC-only)
+    const netCashFlow = summary?.net_cash_flow != null ? Number(summary.net_cash_flow) : null;
     const totalSpending = summary ? Number(summary.total_spending) : 0;
     const txnCount = summary?.transaction_count ?? 0;
     const pctChange = summary?.previous_month_comparison ?? null;
@@ -27,7 +28,8 @@ export default function StatCards({ summary, loading, budgetsStatus, loadingBudg
         ? `${pctChange >= 0 ? "↑" : "↓"} ${Math.abs(pctChange).toFixed(1)}% vs last month`
         : "No prior month data";
 
-    const isOnTrack = !loading && summary && netCashFlow >= 0;
+    const hasChequing = netCashFlow !== null;
+    const isOnTrack = !loading && hasChequing && netCashFlow >= 0;
 
     let budgetHealthTitle = "Budget Health";
     let budgetHealthValue = "No budgets set";
@@ -56,9 +58,17 @@ export default function StatCards({ summary, loading, budgetsStatus, loadingBudg
     const cards = [
         {
             title: "Net Cash Flow",
-            value: summary ? fmt(netCashFlow) : null,
-            sub: summary ? (netCashFlow >= 0 ? "Positive this period" : "Spending exceeds income") : null,
-            valueClass: isOnTrack ? "text-success" : "text-danger",
+            value: summary
+                ? (hasChequing ? fmt(netCashFlow) : "N/A")
+                : null,
+            sub: summary
+                ? (hasChequing
+                    ? (netCashFlow >= 0 ? "Positive this period" : "Spending exceeds income")
+                    : "Upload a chequing statement for cash flow")
+                : null,
+            valueClass: hasChequing
+                ? (isOnTrack ? "text-success" : "text-danger")
+                : "text-text-secondary",
         },
         {
             title: "Total Spending",

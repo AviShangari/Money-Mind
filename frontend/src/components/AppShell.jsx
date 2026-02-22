@@ -7,6 +7,7 @@ import {
     CreditCard,
     TrendingUp,
     MessageSquare,
+    BarChart2,
     Sun,
     Moon,
     LogOut,
@@ -18,12 +19,13 @@ import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
 
 const NAV_ITEMS = [
-    { label: "Dashboard",    icon: LayoutDashboard, to: "/dashboard",             end: true },
-    { label: "Transactions", icon: ArrowLeftRight,  to: "/dashboard/transactions"            },
-    { label: "Budgets",      icon: PiggyBank,       to: "/dashboard/budgets"                 },
-    { label: "Debt",         icon: CreditCard,      to: "/dashboard/debt"                    },
-    { label: "Insights",     icon: TrendingUp,      to: "/dashboard/insights"                },
-    { label: "Chat",         icon: MessageSquare,   to: "/dashboard/chat"                    },
+    { label: "Dashboard",    icon: LayoutDashboard, to: "/dashboard",               end: true },
+    { label: "Transactions", icon: ArrowLeftRight,  to: "/dashboard/transactions"              },
+    { label: "Budgets",      icon: PiggyBank,       to: "/dashboard/budgets"                   },
+    { label: "Statistics",   icon: BarChart2,       to: "/dashboard/statistics"                },
+    { label: "Debt",         icon: CreditCard,      to: "/dashboard/debt"                      },
+    { label: "Insights",     icon: TrendingUp,      to: "/dashboard/insights"                  },
+    { label: "Chat",         icon: MessageSquare,   to: "/dashboard/chat"                      },
 ];
 
 function Avatar({ email }) {

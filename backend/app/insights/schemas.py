@@ -10,8 +10,8 @@ class LargestExpense(BaseModel):
 class MonthlySummary(BaseModel):
     month: str                              # "YYYY-MM"
     total_spending: Decimal                 # absolute value (positive)
-    total_income: Decimal
-    net_cash_flow: Decimal                  # income − spending
+    total_income: Decimal | None            # None when no chequing data exists for the month
+    net_cash_flow: Decimal | None           # None when income is unavailable
     spending_by_category: dict[str, Decimal]
     transaction_count: int                  # all transactions in the month
     spending_count: int                     # debit-only transactions (for avg calculation)
@@ -26,3 +26,14 @@ class TrendPoint(BaseModel):
 
 class SpendingTrend(BaseModel):
     trend: list[TrendPoint]
+
+
+class MonthlyBreakdown(BaseModel):
+    month: str                              # "YYYY-MM"
+    label: str                              # "Jan '25"
+    spending_by_category: dict[str, float]
+
+
+class CategoryBreakdownResponse(BaseModel):
+    months: list[MonthlyBreakdown]          # newest first
+    average_by_category: dict[str, float]

@@ -15,6 +15,9 @@ const CATEGORIES = [
     "Uncategorized",
 ];
 
+const CHEQUING_TYPES = ["purchase", "income", "cc_payment", "e-transfer", "refund", "transfer"];
+const CREDIT_CARD_TYPES = ["purchase", "refund"];
+
 function fmt(amount) {
     const n = parseFloat(amount);
     return `${n < 0 ? "-" : "+"}$${Math.abs(n).toFixed(2)}`;
@@ -37,19 +40,26 @@ function ConfidenceDot({ confidence }) {
 
 /* ── Review modal ────────────────────────────────────────────────────── */
 function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
-    // Track original categories so we can detect user edits
+    // Derive allowed type options from the statement source (all rows share the same source)
+    const typeOptions = preview[0]?.source === "credit_card" ? CREDIT_CARD_TYPES : CHEQUING_TYPES;
+
+    // Track original values so we can detect user edits
     const [rows, setRows] = useState(
-        () => preview.map((txn) => ({ ...txn, _original: txn.category }))
+        () => preview.map((txn) => ({
+            ...txn,
+            _original: txn.category,
+            _originalType: txn.transaction_type,
+            transaction_type_source: null,
+        }))
     );
 
-    const changedCount = rows.filter((r) => r.category_source === "manual").length;
+    const changedCatCount = rows.filter((r) => r.category_source === "manual").length;
+    const changedTypeCount = rows.filter((r) => r.transaction_type_source === "manual").length;
 
     const handleCategoryChange = (idx, newCat) => {
         setRows((prev) =>
             prev.map((row, i) => {
                 if (i !== idx) return row;
-                // If the user reverts to the original suggestion, restore the API's source;
-                // otherwise mark it as a manual override.
                 const changed = newCat !== row._original;
                 return {
                     ...row,
@@ -60,9 +70,23 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
         );
     };
 
+    const handleTypeChange = (idx, newType) => {
+        setRows((prev) =>
+            prev.map((row, i) => {
+                if (i !== idx) return row;
+                const changed = newType !== (row._originalType ?? "purchase");
+                return {
+                    ...row,
+                    transaction_type: newType,
+                    transaction_type_source: changed ? "manual" : null,
+                };
+            })
+        );
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8 px-4">
-            <div className="bg-bg-secondary border border-border rounded-md shadow-2xl w-full max-w-5xl flex flex-col">
+            <div className="bg-bg-secondary border border-border rounded-md shadow-2xl w-full max-w-6xl flex flex-col">
 
                 {/* ── Modal header ── */}
                 <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-6 flex-wrap">
@@ -70,9 +94,14 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                         <h2 className="text-xl font-bold text-text-primary">Review Transactions</h2>
                         <p className="text-sm text-text-secondary mt-1">
                             {rows.length} transaction{rows.length !== 1 ? "s" : ""} parsed.{" "}
-                            {changedCount > 0 && (
+                            {changedCatCount > 0 && (
                                 <span className="text-brand font-medium">
-                                    {changedCount} categor{changedCount !== 1 ? "ies" : "y"} edited by you.
+                                    {changedCatCount} categor{changedCatCount !== 1 ? "ies" : "y"} edited.{" "}
+                                </span>
+                            )}
+                            {changedTypeCount > 0 && (
+                                <span className="text-brand font-medium">
+                                    {changedTypeCount} type{changedTypeCount !== 1 ? "s" : ""} edited.
                                 </span>
                             )}
                         </p>
@@ -104,17 +133,20 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                 <th className="px-4 py-3 text-text-secondary font-medium text-xs whitespace-nowrap">Date</th>
                                 <th className="px-4 py-3 text-text-secondary font-medium text-xs">Description</th>
                                 <th className="px-4 py-3 text-text-secondary font-medium text-xs">Category</th>
+                                <th className="px-4 py-3 text-text-secondary font-medium text-xs">Type</th>
                                 <th className="px-4 py-3 text-text-secondary font-medium text-xs text-right whitespace-nowrap">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rows.map((row, idx) => {
-                                const changed = row.category_source === "manual";
+                                const catChanged = row.category_source === "manual";
+                                const typeChanged = row.transaction_type_source === "manual";
+                                const rowHighlighted = catChanged || typeChanged;
                                 return (
                                     <tr
                                         key={idx}
                                         className={`border-b border-border last:border-0 transition-colors ${
-                                            changed
+                                            rowHighlighted
                                                 ? "bg-brand/[0.06]"
                                                 : "hover:bg-white/[0.03]"
                                         }`}
@@ -130,7 +162,7 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                         </td>
 
                                         {/* Description */}
-                                        <td className="px-4 py-3 text-sm max-w-xs">
+                                        <td className="px-4 py-3 text-sm max-w-[180px]">
                                             <span className="block truncate" title={row.description}>
                                                 {row.description}
                                             </span>
@@ -145,7 +177,7 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                                     className={`text-sm px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors
                                                         bg-bg-tertiary text-text-primary
                                                         hover:border-brand focus:border-brand
-                                                        ${changed
+                                                        ${catChanged
                                                             ? "border-brand/70 text-brand font-semibold bg-brand/[0.08]"
                                                             : "border-border"
                                                         }`}
@@ -154,7 +186,33 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                                         <option key={cat} value={cat}>{cat}</option>
                                                     ))}
                                                 </select>
-                                                {changed && (
+                                                {catChanged && (
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded">
+                                                        edited
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        {/* Transaction type — editable */}
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={row.transaction_type ?? "purchase"}
+                                                    onChange={(e) => handleTypeChange(idx, e.target.value)}
+                                                    className={`text-sm px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors
+                                                        bg-bg-tertiary text-text-primary
+                                                        hover:border-brand focus:border-brand
+                                                        ${typeChanged
+                                                            ? "border-brand/70 text-brand font-semibold bg-brand/[0.08]"
+                                                            : "border-border"
+                                                        }`}
+                                                >
+                                                    {typeOptions.map((t) => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                                {typeChanged && (
                                                     <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded">
                                                         edited
                                                     </span>
@@ -261,12 +319,19 @@ export default function Transactions() {
         setConfirming(true);
         try {
             const res = await api.post("/transactions/confirm", {
-                transactions: rows.map(({ date, description, amount, category, category_source }) => ({
+                transactions: rows.map(({
+                    date, description, amount,
+                    category, category_source,
+                    source, transaction_type, transaction_type_source,
+                }) => ({
                     date,
                     description,
                     amount,
                     category,
                     category_source,
+                    source,
+                    transaction_type,
+                    transaction_type_source,
                 })),
             });
             const created = res.data.transactions_created;
