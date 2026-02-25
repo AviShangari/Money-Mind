@@ -18,8 +18,9 @@ from app.transactions.models import Transaction
 def spending_filter():
     """
     Transactions that count as total spending:
-      - transaction_type = 'purchase'  (from any source)
-      - transaction_type = 'fee'       (from any source)
+      - transaction_type = 'purchase'      (from any source)
+      - transaction_type = 'fee'           (from any source)
+      - transaction_type = 'debt_payment'  (tracked debt payments — loans, mortgage, etc.)
 
     Explicitly excluded:
       - 'cc_payment'  — same money moving between accounts; counted once via CC purchases
@@ -27,7 +28,7 @@ def spending_filter():
       - 'income'      — not spending
       - 'transfer'    — neutral movement
     """
-    return Transaction.transaction_type.in_(["purchase", "fee"])
+    return Transaction.transaction_type.in_(["purchase", "fee", "debt_payment"])
 
 
 def category_spending_filter():

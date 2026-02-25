@@ -19,7 +19,8 @@ class TransactionPreview(BaseModel):
     category_source: str
     confidence: float
     source: Optional[str] = None            # 'chequing' or 'credit_card'
-    transaction_type: Optional[str] = None  # 'purchase', 'payment', 'cc_payment', 'refund', etc.
+    transaction_type: Optional[str] = None  # 'purchase', 'payment', 'cc_payment', 'debt_payment', etc.
+    debt_id: Optional[int] = None           # set when transaction_type='debt_payment' and user links a debt
 
     class Config:
         from_attributes = True
@@ -34,6 +35,7 @@ class TransactionConfirmItem(BaseModel):
     source: Optional[str] = None
     transaction_type: Optional[str] = None
     transaction_type_source: Optional[str] = None  # 'manual' when user overrode the type
+    debt_id: Optional[int] = None           # linked debt for transaction_type='debt_payment'
 
 
 class TransactionConfirmRequest(BaseModel):

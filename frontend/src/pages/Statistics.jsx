@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis } from "recharts";
 import api from "../api/axiosClient";
 
 const COLORS = ["#6366F1", "#34D399", "#FBBF24", "#F87171", "#60A5FA", "#A78BFA", "#FB923C"];
@@ -31,7 +31,7 @@ function buildChartData(spendingByCategory) {
     return top.map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }));
 }
 
-function MiniPieChart({ data, loading }) {
+function MiniBarChart({ data, loading }) {
     if (loading) {
         return <div className="h-48 bg-bg-tertiary rounded animate-pulse" />;
     }
@@ -44,31 +44,29 @@ function MiniPieChart({ data, loading }) {
     }
     return (
         <ResponsiveContainer width="100%" height={192}>
-            <PieChart>
-                <Pie
-                    data={data}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={40}
-                    outerRadius={62}
-                    paddingAngle={3}
-                    dataKey="value"
-                >
-                    {data.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                </Pie>
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
+                <XAxis type="number" hide />
+                <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={72}
+                    tick={{ fontSize: 9, fill: "var(--text-secondary)" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => v.length > 11 ? v.slice(0, 10) + "…" : v}
+                />
                 <Tooltip
                     contentStyle={tooltipStyle}
                     itemStyle={{ color: "var(--text-primary)" }}
                     formatter={(v) => [`$${Number(v).toFixed(2)}`]}
+                    cursor={{ fill: "var(--bg-tertiary)" }}
                 />
-                <Legend
-                    iconType="circle"
-                    iconSize={7}
-                    wrapperStyle={{ fontSize: "11px", color: "var(--text-secondary)" }}
-                />
-            </PieChart>
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {data.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                </Bar>
+            </BarChart>
         </ResponsiveContainer>
     );
 }
@@ -176,7 +174,7 @@ export default function Statistics() {
                                 <p className="text-sm font-semibold text-text-primary text-center mb-1">
                                     {entry.label}
                                 </p>
-                                <MiniPieChart
+                                <MiniBarChart
                                     data={buildChartData(entry.spending_by_category)}
                                     loading={false}
                                 />

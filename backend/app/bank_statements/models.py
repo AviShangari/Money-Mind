@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.base import Base
@@ -11,8 +11,10 @@ class BankStatement(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_hash = Column(String(64), nullable=False)  # SHA-256 hex digest
     filename = Column(String, nullable=False)
-    statement_type = Column(String, nullable=False, server_default="chequing")  # 'chequing' or 'credit_card'
-    uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    statement_type  = Column(String, nullable=False, server_default="chequing")  # 'chequing' or 'credit_card'
+    uploaded_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
+    closing_balance = Column(Numeric(10, 2), nullable=True)   # parsed from statement
+    detected_bank   = Column(String, nullable=True)           # e.g. "TD", "RBC"
 
     user = relationship("User", back_populates="bank_statements")
 

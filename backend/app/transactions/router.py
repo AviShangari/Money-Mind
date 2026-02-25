@@ -10,6 +10,7 @@ from app.core.dependencies import get_db
 
 from app.transactions.parser.extract import extract_text_from_pdf
 from app.transactions.parser.detector import detect_bank_from_text, detect_year_from_text
+from app.transactions.parser.utils import extract_closing_balance_from_text
 from app.transactions.parser.parse_td import extract_transactions_from_td_text
 from app.transactions.parser.parse_rbc import extract_transactions_from_rbc_text
 # Importing this named function also triggers its module-level self-registration
@@ -45,24 +46,23 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ── Transaction-type detection regexes ───────────────────────────────────────
 
-# Chequing: descriptions that are a credit-card bill payment
-_CC_PAYMENT_RE = re.compile(
+# Chequing: debt/loan payments — checked before _CC_PAYMENT_RE
+_DEBT_PAYMENT_RE = re.compile(
     r"VISA[\s\-]*PAYMENT"
     r"|MASTERCARD[\s\-]*PAYMENT"
-    r"|CC[\s\-]*PAYMENT"
-    r"|CREDIT[\s\-]*CARD[\s\-]*PAYMENT"
-    r"|PAYMENT[\s\-]*VISA"
-    r"|PAYMENT[\s\-]*-[\s\-]*VISA",
+    r"|LOAN[\s\-]*PAYMENT"
+    r"|MORTGAGE[\s\-]*PAYMENT"
+    r"|LINE[\s\-]*OF[\s\-]*CREDIT[\s\-]*PAYMENT"
+    r"|STUDENT[\s\-]*LOAN[\s\-]*PAYMENT",
     re.IGNORECASE,
 )
 
-# Credit card: payment / credit received on the card
-_CC_CARD_PAYMENT_RE = re.compile(
-    r"PAYMENT[\s\-]*THANK[\s\-]*YOU"
-    r"|PAYMENT[\s\-]*-[\s\-]*THANK[\s\-]*YOU"
-    r"|PAYMENT[\s\-]*RECEIVED"
-    r"|ONLINE[\s\-]*PAYMENT"
-    r"|AUTOPAY",
+# Chequing: remaining credit-card bill payments not caught by _DEBT_PAYMENT_RE
+_CC_PAYMENT_RE = re.compile(
+    r"CC[\s\-]*PAYMENT"
+    r"|CREDIT[\s\-]*CARD[\s\-]*PAYMENT"
+    r"|PAYMENT[\s\-]*VISA"
+    r"|PAYMENT[\s\-]*-[\s\-]*VISA",
     re.IGNORECASE,
 )
 
@@ -84,6 +84,7 @@ def detect_transaction_type(description: str, amount: float, source: str | None)
 
     Chequing:
       positive amount                          → 'income'
+      negative + debt/loan payment description → 'debt_payment'
       negative + CC-payment description        → 'cc_payment'
       negative + other                         → 'purchase'
 
@@ -107,6 +108,8 @@ def detect_transaction_type(description: str, amount: float, source: str | None)
     # chequing (or unknown source — treat as chequing)
     if amt > 0:
         return "income"
+    if _DEBT_PAYMENT_RE.search(description):
+        return "debt_payment"
     if _CC_PAYMENT_RE.search(description):
         return "cc_payment"
     return "purchase"
@@ -161,6 +164,9 @@ async def upload_statement(
     year = detect_year_from_text(raw_text)
     if not year:
         year = datetime.now().year
+
+    detected_bank    = detect_bank_from_text(raw_text)
+    closing_balance: float | None = None
 
     # ── Auto-detect parser via registry ──────────────────────────────────────
     parse_fn, effective_source = get_parser(raw_text)
@@ -223,22 +229,18 @@ async def upload_statement(
             raise HTTPException(status_code=500, detail=f"Failed to parse transactions: {e}")
 
     # ── Record the statement (prevents re-upload of the same PDF) ────────────
+    if effective_source == "credit_card":
+        closing_balance = extract_closing_balance_from_text(raw_text)
+
     create_statement_record(
         db=db,
         user_id=current_user.id,
         file_hash=file_hash,
         filename=file.filename,
         statement_type=effective_source,
+        closing_balance=closing_balance,
+        detected_bank=detected_bank,
     )
-
-    # ── Strip CC payment-received rows before preview ─────────────────────────
-    # The parser already skips these for TD Visa, but guard here for any parser
-    # that may pass them through (positive stored amount = credit on CC card).
-    if effective_source == "credit_card":
-        parsed_transactions = [
-            t for t in parsed_transactions
-            if not (float(t["amount"]) > 0 and _CC_CARD_PAYMENT_RE.search(t["description"]))
-        ]
 
     # ── Build preview — no transaction DB writes yet ──────────────────────────
     preview: list[TransactionPreview] = []
@@ -294,13 +296,6 @@ def confirm_transactions(
     skipped = 0
 
     for item in payload.transactions:
-        # Guard: discard CC payment-received rows even if the frontend somehow sends them.
-        if item.source == "credit_card" and (
-            float(item.amount) > 0 and _CC_CARD_PAYMENT_RE.search(item.description)
-        ):
-            skipped += 1
-            continue
-
         # Persist manual category changes as overrides so future transactions
         # with matching descriptions are auto-categorized the same way.
         if item.category_source == "manual":
@@ -320,6 +315,10 @@ def confirm_transactions(
                 transaction_type=item.transaction_type,
             )
 
+        is_debt_payment = (
+            item.transaction_type == "debt_payment" and item.debt_id is not None
+        )
+
         saved = create_transaction(
             db=db,
             user_id=current_user.id,
@@ -330,11 +329,46 @@ def confirm_transactions(
             category_source=item.category_source,
             source=item.source,
             transaction_type=item.transaction_type,
+            debt_payment_link=item.debt_id if is_debt_payment else None,
         )
         if saved is None:
             skipped += 1
         else:
             inserted += 1
+
+            # Subtract from the linked debt's balance (chequing outflow is negative,
+            # so we use abs() as the payment amount applied to the debt).
+            if is_debt_payment:
+                from app.debts.models import Debt  # local import avoids circular
+                debt = (
+                    db.query(Debt)
+                    .filter_by(id=item.debt_id, user_id=current_user.id)
+                    .first()
+                )
+                if debt:
+                    from decimal import Decimal as _D
+                    pay_amount = abs(_D(str(item.amount)))
+                    debt.balance = max(_D(str(debt.balance)) - pay_amount, _D("0"))
+                    debt.last_manual_update_at = datetime.utcnow()
+                    db.commit()
+
+    # ── Auto-update CC debt balance from statement (silent) ───────────────────
+    # Check if any of the confirmed transactions were credit_card source.
+    has_cc = any(item.source == "credit_card" for item in payload.transactions)
+    if has_cc:
+        try:
+            from app.debts.service import auto_update_from_statement  # local import avoids circular
+
+            latest_cc_stmt = (
+                db.query(BankStatement)
+                .filter_by(user_id=current_user.id, statement_type="credit_card")
+                .order_by(BankStatement.uploaded_at.desc())
+                .first()
+            )
+            if latest_cc_stmt:
+                auto_update_from_statement(db, user_id=current_user.id, statement_id=latest_cc_stmt.id)
+        except Exception:
+            pass  # never block the confirm response
 
     return {
         "message": "Transactions saved successfully",
@@ -409,6 +443,27 @@ def backfill_types(
 
     db.commit()
     return {"updated": updated}
+
+
+@router.get("/cc-banks")
+def list_cc_banks(
+    current_user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Return distinct detected_bank values from the user's CC statements (for debt linking)."""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    rows = (
+        db.query(BankStatement.detected_bank)
+        .filter(
+            BankStatement.user_id == current_user.id,
+            BankStatement.statement_type == "credit_card",
+            BankStatement.detected_bank.isnot(None),
+        )
+        .distinct()
+        .all()
+    )
+    return [row[0] for row in rows]
 
 
 @router.get("")

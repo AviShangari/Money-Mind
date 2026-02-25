@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
@@ -8,6 +8,7 @@ import {
     TrendingUp,
     MessageSquare,
     BarChart2,
+    Settings,
     Sun,
     Moon,
     LogOut,
@@ -17,6 +18,7 @@ import {
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
+import api from "../api/axiosClient";
 
 const NAV_ITEMS = [
     { label: "Dashboard",    icon: LayoutDashboard, to: "/dashboard",               end: true },
@@ -26,6 +28,7 @@ const NAV_ITEMS = [
     { label: "Debt",         icon: CreditCard,      to: "/dashboard/debt"                      },
     { label: "Insights",     icon: TrendingUp,      to: "/dashboard/insights"                  },
     { label: "Chat",         icon: MessageSquare,   to: "/dashboard/chat"                      },
+    { label: "Settings",     icon: Settings,        to: "/dashboard/settings"                  },
 ];
 
 function Avatar({ email }) {
@@ -37,7 +40,7 @@ function Avatar({ email }) {
     );
 }
 
-function SidebarNav({ onClose }) {
+function SidebarNav({ onClose, dueSoonCount = 0 }) {
     const { theme, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
 
@@ -79,6 +82,11 @@ function SidebarNav({ onClose }) {
                     >
                         <Icon size={17} strokeWidth={1.8} />
                         {label}
+                        {label === "Debt" && dueSoonCount > 0 && (
+                            <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-warning text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                                {dueSoonCount > 9 ? "9+" : dueSoonCount}
+                            </span>
+                        )}
                     </NavLink>
                 ))}
             </nav>
@@ -121,7 +129,16 @@ function SidebarNav({ onClose }) {
 
 export default function AppShell() {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [dueSoonCount, setDueSoonCount] = useState(0);
     const location = useLocation();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (!user) return;
+        api.get("/debts/due-soon")
+            .then((res) => setDueSoonCount(res.data?.length ?? 0))
+            .catch(() => setDueSoonCount(0));
+    }, [user]);
 
     const currentPage =
         NAV_ITEMS.find((item) =>
@@ -134,7 +151,7 @@ export default function AppShell() {
         <div className="flex min-h-screen bg-bg-primary text-text-primary">
             {/* ── Desktop sidebar ── */}
             <aside className="hidden lg:flex flex-col w-[260px] bg-bg-secondary border-r border-border p-6 fixed h-screen">
-                <SidebarNav />
+                <SidebarNav dueSoonCount={dueSoonCount} />
             </aside>
 
             {/* ── Mobile backdrop ── */}
@@ -152,7 +169,7 @@ export default function AppShell() {
                     mobileOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
-                <SidebarNav onClose={() => setMobileOpen(false)} />
+                <SidebarNav onClose={() => setMobileOpen(false)} dueSoonCount={dueSoonCount} />
             </aside>
 
             {/* ── Main content ── */}

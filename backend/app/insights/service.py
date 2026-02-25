@@ -5,11 +5,11 @@ from sqlalchemy import func, extract, Numeric, literal
 from sqlalchemy.orm import Session
 
 from app.transactions.models import Transaction
+from app.users.models import User
 from app.transactions.filters import (
     spending_filter,
     category_spending_filter,
     income_filter,
-    month_has_chequing,
 )
 
 
@@ -91,17 +91,43 @@ def get_summary(db: Session, user_id: int, year: int, month: int) -> dict:
         .filter(spend_f)
     ).scalar()
 
+    # ── Spending split by source ──────────────────────────────────────────────
+    cc_spending: Decimal = _mf(
+        db.query(_coalesce_zero(-func.sum(Transaction.amount)))
+        .filter(spend_f, Transaction.source == "credit_card")
+    ).scalar()
+
+    chequing_spending: Decimal = _mf(
+        db.query(_coalesce_zero(-func.sum(Transaction.amount)))
+        .filter(spend_f, Transaction.source == "chequing")
+    ).scalar()
+
     # ── Total income & net cash flow ──────────────────────────────────────────
-    # Income is only meaningful when the user has chequing data for this month.
-    if month_has_chequing(db, user_id, year, month):
-        total_income: Decimal | None = _mf(
-            db.query(_coalesce_zero(func.sum(Transaction.amount)))
-            .filter(income_f)
-        ).scalar()
-        net_cash_flow: Decimal | None = total_income - total_spending
+    cash_flow_estimated: bool = False
+
+    # Actual income from chequing income-tagged transactions (0 if none)
+    transaction_income: Decimal = _mf(
+        db.query(_coalesce_zero(func.sum(Transaction.amount)))
+        .filter(income_f)
+    ).scalar()
+
+    # Manual income set by the user on their profile
+    user_obj = db.query(User).filter_by(id=user_id).first()
+    manual_base = float(user_obj.base_income or 0) if user_obj else 0.0
+    manual_side = float(user_obj.side_income or 0) if user_obj else 0.0
+    manual_total = manual_base + manual_side
+
+    if manual_total > 0:
+        total_income: Decimal | None = Decimal(str(manual_total)) + transaction_income
+        cash_flow_estimated = True
+    elif transaction_income > 0:
+        total_income = transaction_income
     else:
         total_income = None
-        net_cash_flow = None
+
+    net_cash_flow: Decimal | None = (
+        (total_income - total_spending) if total_income is not None else None
+    )
 
     # ── Transaction count (all) ───────────────────────────────────────────────
     transaction_count: int = _mf(
@@ -158,16 +184,48 @@ def get_summary(db: Session, user_id: int, year: int, month: int) -> dict:
     else:
         pct_change = None
 
+    # ── Prior month net cash flow (for trend arrow) ───────────────────────────
+    prior_transaction_income: Decimal = (
+        db.query(_coalesce_zero(func.sum(Transaction.amount)))
+        .filter(
+            Transaction.user_id == user_id,
+            extract("year",  Transaction.date) == py,
+            extract("month", Transaction.date) == pm,
+            income_f,
+        )
+        .scalar()
+    )
+    if manual_total > 0:
+        prior_total_income: Decimal | None = Decimal(str(manual_total)) + prior_transaction_income
+    elif prior_transaction_income > 0:
+        prior_total_income = prior_transaction_income
+    else:
+        prior_total_income = None
+
+    previous_net_cash_flow: Decimal | None = (
+        (prior_total_income - prior_spending) if prior_total_income is not None else None
+    )
+
     return {
         "month": f"{year:04d}-{month:02d}",
         "total_spending": total_spending,
         "total_income": total_income,
         "net_cash_flow": net_cash_flow,
+        "cash_flow_estimated": cash_flow_estimated,
         "spending_by_category": spending_by_category,
         "transaction_count": transaction_count,
         "spending_count": spending_count,
         "largest_expense": largest_expense,
         "previous_month_comparison": pct_change,
+        # Income breakdown
+        "base_income": user_obj.base_income if user_obj else None,
+        "side_income": user_obj.side_income if user_obj else None,
+        "transaction_income": transaction_income,
+        # Spending by source
+        "cc_spending": cc_spending,
+        "chequing_spending": chequing_spending,
+        # Prior month cash flow
+        "previous_net_cash_flow": previous_net_cash_flow,
     }
 
 

@@ -9,3 +9,5 @@ if not GOOGLE_CLIENT_ID:
     raise RuntimeError("GOOGLE_CLIENT_ID is not set. Add it to your .env file.")
 
 IS_PRODUCTION = os.getenv("IS_PRODUCTION", "false").lower() == "true"
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Optional — chatbot disabled if not set

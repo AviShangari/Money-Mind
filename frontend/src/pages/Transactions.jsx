@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/axiosClient";
 
 const CATEGORIES = [
@@ -15,8 +16,8 @@ const CATEGORIES = [
     "Uncategorized",
 ];
 
-const CHEQUING_TYPES = ["purchase", "income", "cc_payment", "e-transfer", "refund", "transfer"];
-const CREDIT_CARD_TYPES = ["purchase", "refund"];
+const CHEQUING_TYPES     = ["purchase", "income", "cc_payment", "debt_payment", "e-transfer", "refund", "transfer"];
+const CREDIT_CARD_TYPES  = ["purchase", "refund", "cc_payment"];
 
 function fmt(amount) {
     const n = parseFloat(amount);
@@ -38,24 +39,57 @@ function ConfidenceDot({ confidence }) {
     );
 }
 
+/* ── Debt-match helper ───────────────────────────────────────────────── */
+function guessDebtId(description, debts) {
+    if (!debts.length) return null;
+    const desc = description.toLowerCase();
+    // VISA in description → find a debt whose name contains 'visa'
+    if (/visa/i.test(desc)) {
+        const match = debts.find(d => /visa/i.test(d.name));
+        if (match) return match.id;
+    }
+    return null;
+}
+
 /* ── Review modal ────────────────────────────────────────────────────── */
 function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
-    // Derive allowed type options from the statement source (all rows share the same source)
-    const typeOptions = preview[0]?.source === "credit_card" ? CREDIT_CARD_TYPES : CHEQUING_TYPES;
+    const isChequing = preview[0]?.source !== "credit_card";
+    const typeOptions = isChequing ? CHEQUING_TYPES : CREDIT_CARD_TYPES;
 
-    // Track original values so we can detect user edits
+    // ── Available debts for the "Which debt?" dropdown ────────────────
+    const [debts,        setDebts]        = useState([]);
+    const [loadingDebts, setLoadingDebts] = useState(true);
+
+    useEffect(() => {
+        api.get("/debts/list-simple")
+            .then(res => setDebts(res.data))
+            .catch(() => setDebts([]))
+            .finally(() => setLoadingDebts(false));
+    }, []);
+
+    // ── Row state ─────────────────────────────────────────────────────
     const [rows, setRows] = useState(
         () => preview.map((txn) => ({
             ...txn,
-            _original: txn.category,
+            _original:     txn.category,
             _originalType: txn.transaction_type,
             transaction_type_source: null,
+            debt_id: null,
         }))
     );
 
-    const changedCatCount = rows.filter((r) => r.category_source === "manual").length;
-    const changedTypeCount = rows.filter((r) => r.transaction_type_source === "manual").length;
+    // ── Auto-match debts once debts are loaded ────────────────────────
+    useEffect(() => {
+        if (loadingDebts || !debts.length) return;
+        setRows(prev => prev.map(row => {
+            if (row.transaction_type !== "debt_payment" || row.debt_id !== null) return row;
+            const guessed = guessDebtId(row.description, debts);
+            return guessed ? { ...row, debt_id: guessed } : row;
+        }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadingDebts]);
 
+    // ── Handlers ──────────────────────────────────────────────────────
     const handleCategoryChange = (idx, newCat) => {
         setRows((prev) =>
             prev.map((row, i) => {
@@ -75,14 +109,43 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
             prev.map((row, i) => {
                 if (i !== idx) return row;
                 const changed = newType !== (row._originalType ?? "purchase");
+                // Auto-guess debt when user switches this row to debt_payment
+                const newDebtId = newType === "debt_payment"
+                    ? (row.debt_id ?? guessDebtId(row.description, debts))
+                    : row.debt_id;
                 return {
                     ...row,
                     transaction_type: newType,
                     transaction_type_source: changed ? "manual" : null,
+                    debt_id: newDebtId,
                 };
             })
         );
     };
+
+    const handleDebtChange = (idx, debtId) => {
+        setRows(prev => prev.map((row, i) =>
+            i === idx ? { ...row, debt_id: debtId ? Number(debtId) : null } : row
+        ));
+    };
+
+    // ── Derived counts ────────────────────────────────────────────────
+    const changedCatCount  = rows.filter((r) => r.category_source === "manual").length;
+    const changedTypeCount = rows.filter((r) => r.transaction_type_source === "manual").length;
+    const unlinkedCount    = rows.filter(
+        (r) => r.transaction_type === "debt_payment" && !r.debt_id
+    ).length;
+
+    // ── Confirm with validation ───────────────────────────────────────
+    const handleConfirmClick = () => {
+        if (unlinkedCount > 0) return; // button disabled, but belt-and-suspenders
+        onConfirm(rows);
+    };
+
+    const SELECT_CLS = (changed) =>
+        `text-sm px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors
+         bg-bg-tertiary text-text-primary hover:border-brand focus:border-brand
+         ${changed ? "border-brand/70 text-brand font-semibold bg-brand/[0.08]" : "border-border"}`;
 
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8 px-4">
@@ -139,16 +202,20 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                         </thead>
                         <tbody>
                             {rows.map((row, idx) => {
-                                const catChanged = row.category_source === "manual";
+                                const catChanged  = row.category_source === "manual";
                                 const typeChanged = row.transaction_type_source === "manual";
+                                const isDebtPayment = row.transaction_type === "debt_payment";
+                                const needsDebt     = isDebtPayment && !row.debt_id;
                                 const rowHighlighted = catChanged || typeChanged;
                                 return (
                                     <tr
                                         key={idx}
                                         className={`border-b border-border last:border-0 transition-colors ${
-                                            rowHighlighted
-                                                ? "bg-brand/[0.06]"
-                                                : "hover:bg-white/[0.03]"
+                                            needsDebt
+                                                ? "bg-warning/[0.05]"
+                                                : rowHighlighted
+                                                    ? "bg-brand/[0.06]"
+                                                    : "hover:bg-white/[0.03]"
                                         }`}
                                     >
                                         {/* Confidence dot */}
@@ -174,13 +241,7 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                                 <select
                                                     value={row.category}
                                                     onChange={(e) => handleCategoryChange(idx, e.target.value)}
-                                                    className={`text-sm px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors
-                                                        bg-bg-tertiary text-text-primary
-                                                        hover:border-brand focus:border-brand
-                                                        ${catChanged
-                                                            ? "border-brand/70 text-brand font-semibold bg-brand/[0.08]"
-                                                            : "border-border"
-                                                        }`}
+                                                    className={SELECT_CLS(catChanged)}
                                                 >
                                                     {CATEGORIES.map((cat) => (
                                                         <option key={cat} value={cat}>{cat}</option>
@@ -194,28 +255,58 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                             </div>
                                         </td>
 
-                                        {/* Transaction type — editable */}
+                                        {/* Transaction type + optional debt selector */}
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <select
-                                                    value={row.transaction_type ?? "purchase"}
-                                                    onChange={(e) => handleTypeChange(idx, e.target.value)}
-                                                    className={`text-sm px-2.5 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors
-                                                        bg-bg-tertiary text-text-primary
-                                                        hover:border-brand focus:border-brand
-                                                        ${typeChanged
-                                                            ? "border-brand/70 text-brand font-semibold bg-brand/[0.08]"
-                                                            : "border-border"
-                                                        }`}
-                                                >
-                                                    {typeOptions.map((t) => (
-                                                        <option key={t} value={t}>{t}</option>
-                                                    ))}
-                                                </select>
-                                                {typeChanged && (
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded">
-                                                        edited
-                                                    </span>
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={row.transaction_type ?? "purchase"}
+                                                        onChange={(e) => handleTypeChange(idx, e.target.value)}
+                                                        className={SELECT_CLS(typeChanged)}
+                                                    >
+                                                        {typeOptions.map((t) => (
+                                                            <option key={t} value={t}>{t}</option>
+                                                        ))}
+                                                    </select>
+                                                    {typeChanged && (
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded">
+                                                            edited
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* ── Which debt? ── */}
+                                                {isDebtPayment && (
+                                                    <div>
+                                                        {loadingDebts ? (
+                                                            <div className="h-7 w-36 bg-bg-tertiary rounded animate-pulse" />
+                                                        ) : debts.length === 0 ? (
+                                                            <p className="text-xs text-text-secondary">
+                                                                No debts added yet —{" "}
+                                                                <Link
+                                                                    to="/dashboard/debt"
+                                                                    className="text-brand hover:underline"
+                                                                >
+                                                                    add one
+                                                                </Link>
+                                                            </p>
+                                                        ) : (
+                                                            <select
+                                                                value={row.debt_id ?? ""}
+                                                                onChange={(e) => handleDebtChange(idx, e.target.value)}
+                                                                className={`text-xs px-2 py-1.5 rounded-sm border outline-none cursor-pointer transition-colors bg-bg-tertiary text-text-primary hover:border-brand focus:border-brand ${
+                                                                    needsDebt
+                                                                        ? "border-warning/70 text-warning"
+                                                                        : "border-border"
+                                                                }`}
+                                                            >
+                                                                <option value="">Which debt?</option>
+                                                                {debts.map(d => (
+                                                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>
@@ -238,7 +329,7 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                 </div>
 
                 {/* ── Footer ── */}
-                <div className="px-6 py-4 border-t border-border flex items-center justify-between gap-4">
+                <div className="px-6 py-4 border-t border-border flex items-center justify-between gap-4 flex-wrap">
                     <button
                         onClick={onCancel}
                         disabled={confirming}
@@ -248,16 +339,23 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                         Cancel
                     </button>
 
-                    <button
-                        onClick={() => onConfirm(rows)}
-                        disabled={confirming}
-                        className="btn-primary text-sm px-6 py-2.5 disabled:opacity-70 disabled:cursor-not-allowed
-                            disabled:translate-y-0 disabled:shadow-none"
-                    >
-                        {confirming
-                            ? "Saving…"
-                            : `Confirm & Save ${rows.length} Transaction${rows.length !== 1 ? "s" : ""}`}
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {unlinkedCount > 0 && (
+                            <p className="text-xs text-warning">
+                                {unlinkedCount} debt payment{unlinkedCount !== 1 ? "s" : ""} need a debt selected.
+                            </p>
+                        )}
+                        <button
+                            onClick={handleConfirmClick}
+                            disabled={confirming || unlinkedCount > 0}
+                            className="btn-primary text-sm px-6 py-2.5 disabled:opacity-70 disabled:cursor-not-allowed
+                                disabled:translate-y-0 disabled:shadow-none"
+                        >
+                            {confirming
+                                ? "Saving…"
+                                : `Confirm & Save ${rows.length} Transaction${rows.length !== 1 ? "s" : ""}`}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -323,6 +421,7 @@ export default function Transactions() {
                     date, description, amount,
                     category, category_source,
                     source, transaction_type, transaction_type_source,
+                    debt_id,
                 }) => ({
                     date,
                     description,
@@ -332,6 +431,7 @@ export default function Transactions() {
                     source,
                     transaction_type,
                     transaction_type_source,
+                    debt_id: debt_id ?? null,
                 })),
             });
             const created = res.data.transactions_created;

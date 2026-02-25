@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 # --- MONTH MAP FOR TD ---
@@ -29,6 +30,28 @@ def parse_td_date(date_str: str, year: int) -> datetime.date:
     day = int(day_part)
 
     return datetime(year, month, day).date()
+
+
+_CLOSING_BALANCE_PATTERNS = [
+    re.compile(r"TOTAL\s*NEW\s*BALANCE\s*\$?\s*([\d,]+\.\d{2})", re.IGNORECASE),
+    re.compile(r"(?:^|\s)NEW\s*BALANCE\s*\$?\s*([\d,]+\.\d{2})", re.IGNORECASE | re.MULTILINE),
+]
+
+
+def extract_closing_balance_from_text(text: str) -> float | None:
+    """
+    Attempts to find the closing / new balance from statement text.
+    Tries 'TOTAL NEW BALANCE' first, then 'NEW BALANCE'.
+    Returns the balance as a float, or None if not found.
+    """
+    for pat in _CLOSING_BALANCE_PATTERNS:
+        m = pat.search(text)
+        if m:
+            try:
+                return float(m.group(1).replace(",", ""))
+            except (ValueError, AttributeError):
+                continue
+    return None
 
 
 def parse_amount(amount_str: str) -> float:

@@ -42,7 +42,7 @@ def delete_transaction(db: Session, txn: Transaction) -> None:
     db.commit()
 
 
-def create_transaction(db: Session, user_id: int, date: date, description: str, amount: Decimal, category: str = "", category_source: str = "", source: str | None = None, transaction_type: str | None = None) -> Transaction | None:
+def create_transaction(db: Session, user_id: int, date: date, description: str, amount: Decimal, category: str = "", category_source: str = "", source: str | None = None, transaction_type: str | None = None, debt_payment_link: int | None = None) -> Transaction | None:
     txn = Transaction(
         user_id=user_id,
         date=date,
@@ -52,6 +52,7 @@ def create_transaction(db: Session, user_id: int, date: date, description: str, 
         category_source=category_source,
         source=source,
         transaction_type=transaction_type,
+        debt_payment_link=debt_payment_link,
     )
 
     try:

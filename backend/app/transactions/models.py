@@ -17,6 +17,9 @@ class Transaction(Base):
     source = Column(String, nullable=True)            # 'chequing' or 'credit_card'
     transaction_type = Column(String, nullable=True)  # 'purchase', 'payment', 'fee', 'interest', 'refund', 'income', 'transfer', 'cc_payment'
 
+    # Optional link to a tracked debt that this transaction represents a payment toward
+    debt_payment_link = Column(Integer, ForeignKey("debts.id", ondelete="SET NULL"), nullable=True)
+
     # Relationship to user
     user = relationship("User", back_populates="transactions")
 

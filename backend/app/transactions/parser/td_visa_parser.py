@@ -18,11 +18,15 @@ Key observations:
 
 Sign convention:
   positive in statement  → charge/purchase (money owed to TD)
-  negative in statement  → credit on card (payment, refund)
+  negative in statement  → credit on card (payment, refund, cc_payment)
 
 Storage convention (inverted):
-  negative stored amount → spending / expense
-  positive stored amount → income / credit
+  negative stored amount → spending / expense (purchase, fee)
+  positive stored amount → credit received  (cc_payment, refund)
+
+PAYMENT THANK YOU lines are stored as transaction_type='cc_payment' with a positive
+stored amount. They are excluded from spending totals but kept for cash flow estimation
+when no chequing data is available.
 """
 
 import re
@@ -72,16 +76,6 @@ _CC_LINE_RE = re.compile(
 # ---------------------------------------------------------------------------
 # Classification patterns
 # ---------------------------------------------------------------------------
-
-# Payment lines to SKIP entirely — payments received on the card are not purchases.
-_CC_PAYMENT_SKIP_RE = re.compile(
-    r"PAYMENT[\s\-]*THANK[\s\-]*YOU"
-    r"|PAYMENT[\s\-]*-[\s\-]*THANK"
-    r"|PAYMENT[\s\-]*RECEIVED"
-    r"|ONLINE[\s\-]*PAYMENT"
-    r"|AUTOPAY",
-    re.IGNORECASE,
-)
 
 _PAYMENT_RE = re.compile(r"PAYMENT", re.IGNORECASE)
 _FEE_RE = re.compile(
@@ -144,7 +138,8 @@ def _parse_amount(raw: str) -> float:
 
 def _classify(description: str, raw_amount: float) -> str:
     if raw_amount < 0:
-        return "payment" if _PAYMENT_RE.search(description) else "refund"
+        # Credit on the card: either a payment received from the cardholder or a refund.
+        return "cc_payment" if _PAYMENT_RE.search(description) else "refund"
     return "fee" if _FEE_RE.search(description) else "purchase"
 
 
@@ -170,7 +165,7 @@ def extract_transactions_from_td_visa_text(text: str, year: int) -> List[Dict]:
         date             – datetime.date  (transaction date)
         description      – str
         amount           – float  (negative = expense, positive = credit/refund)
-        transaction_type – 'purchase' | 'payment' | 'fee' | 'refund'
+        transaction_type – 'purchase' | 'cc_payment' | 'fee' | 'refund'
     """
     transactions: List[Dict] = []
 
@@ -191,11 +186,6 @@ def extract_transactions_from_td_visa_text(text: str, year: int) -> List[Dict]:
             continue
 
         raw_amount = _parse_amount(d["amount"])
-
-        # Drop payment-received lines (credits on the card from the cardholder paying their bill).
-        # raw_amount < 0 means credit; combined with a payment description → skip entirely.
-        if raw_amount < 0 and _CC_PAYMENT_SKIP_RE.search(description):
-            continue
 
         try:
             txn_date = _parse_date(d["txn_month"], d["txn_day"], year)
