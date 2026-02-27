@@ -14,6 +14,7 @@ import {
     LogOut,
     Menu,
     X,
+    Brain,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -49,7 +50,9 @@ function SidebarNav({ onClose, dueSoonCount = 0 }) {
             {/* Logo */}
             <div className="flex items-center justify-between mb-10">
                 <div className="flex items-center gap-2.5">
-                    <span className="text-xl">💸</span>
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-white" />
+                    </div>
                     <span className="font-bold text-lg text-text-primary">Money Mind</span>
                 </div>
                 {onClose && (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Brain } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosClient";
@@ -123,7 +124,9 @@ export default function Dashboard() {
             {/* Sidebar */}
             <aside className="w-[260px] bg-bg-secondary border-r border-border p-8 flex flex-col fixed h-screen">
                 <div className="mb-12 flex items-center gap-2.5">
-                    <div className="text-2xl">💸</div>
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-white" />
+                    </div>
                     <h2 className="text-xl font-bold text-text-primary m-0">Money Mind</h2>
                 </div>
 

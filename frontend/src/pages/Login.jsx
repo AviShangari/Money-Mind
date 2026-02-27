@@ -1,3 +1,5 @@
+import { Brain } from "lucide-react";
+
 function Login() {
     const redirectToGoogle = () => {
         const nonce = crypto.randomUUID(); // ← REQUIRED FOR id_token
@@ -19,8 +21,10 @@ function Login() {
     return (
         <div className="h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top_right,#1e293b_0%,#0f172a_100%)]">
             <div className="glass-panel p-12 rounded-lg text-center w-full max-w-[400px] shadow-lg">
-                <div className="mb-8 text-5xl">
-                    💸
+                <div className="mb-8 flex justify-center">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center">
+                        <Brain className="w-9 h-9 text-white" />
+                    </div>
                 </div>
 
                 <h1 className="text-3xl font-bold mb-2 text-text-primary">
