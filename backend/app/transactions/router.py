@@ -280,6 +280,10 @@ async def upload_statement(
             )
         )
 
+    # Clean up the uploaded file to ensure data privacy
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
     return preview
 
 
