@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import date
+from datetime import date as DateType
 from typing import Optional
 
 
 class TransactionUpdate(BaseModel):
+    date: Optional[DateType] = None
     amount: Decimal | None = None
     description: str | None = None
     category: str | None = None
@@ -12,7 +13,7 @@ class TransactionUpdate(BaseModel):
 
 class TransactionPreview(BaseModel):
     id: Optional[int] = None
-    date: date
+    date: DateType
     description: str
     amount: Decimal
     category: str
@@ -27,7 +28,7 @@ class TransactionPreview(BaseModel):
 
 
 class TransactionConfirmItem(BaseModel):
-    date: date
+    date: DateType
     description: str
     amount: Decimal
     category: str

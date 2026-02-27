@@ -11,3 +11,6 @@ python-multipart
 alembic
 requests
 openai>=1.0.0
+scikit-learn
+lightgbm
+joblib

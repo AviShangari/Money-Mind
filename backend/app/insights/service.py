@@ -306,11 +306,48 @@ def get_monthly_category_breakdown(db: Session, user_id: int) -> dict:
 
 def get_trend(db: Session, user_id: int) -> list[dict]:
     """
-    Return monthly spending totals (purchases + fees) for the last 6 months,
-    ordered oldest → newest.
+    Return monthly spending totals (purchases + fees) for up to the last 12
+    calendar months, ordered oldest → newest.
+
+    - Always anchors on the current calendar month so today is always shown.
+    - Months with no spending are zero-filled so the series is contiguous.
+    - If the user has fewer than 12 months of history, only the months since
+      their earliest transaction are returned (no leading zeros before data).
     """
-    ref_year, ref_month = latest_month_with_data(db, user_id)
-    cutoff = _month_cutoff_from(ref_year, ref_month, months_back=5)
+    today = date.today()
+    ref_year, ref_month = today.year, today.month
+
+    # Build the ordered list of (year, month) for the last 12 months
+    months_range: list[tuple[int, int]] = []
+    y, m = ref_year, ref_month
+    for _ in range(12):
+        months_range.append((y, m))
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    months_range.reverse()  # oldest → newest
+
+    # Find the earliest month the user actually has data
+    earliest_row = (
+        db.query(
+            extract("year",  Transaction.date).label("yr"),
+            extract("month", Transaction.date).label("mo"),
+        )
+        .filter(Transaction.user_id == user_id)
+        .order_by(Transaction.date)
+        .first()
+    )
+
+    if earliest_row:
+        earliest = (int(earliest_row.yr), int(earliest_row.mo))
+        # Trim any leading months before the user's first transaction
+        months_range = [(y, m) for (y, m) in months_range if (y, m) >= earliest]
+
+    if not months_range:
+        return []
+
+    cutoff = date(months_range[0][0], months_range[0][1], 1)
 
     spend_f = spending_filter()
 
@@ -329,17 +366,20 @@ def get_trend(db: Session, user_id: int) -> list[dict]:
             extract("year",  Transaction.date),
             extract("month", Transaction.date),
         )
-        .order_by(
-            extract("year",  Transaction.date),
-            extract("month", Transaction.date),
-        )
         .all()
     )
 
+    # Build a lookup of actual spending from DB
+    spending_by_month: dict[tuple[int, int], float] = {
+        (int(r.yr), int(r.mo)): float(r.spending)
+        for r in rows
+    }
+
+    # Zero-fill the full range
     return [
         {
-            "month":    date(int(row.yr), int(row.mo), 1).strftime("%b '%y"),
-            "spending": row.spending,
+            "month":    date(y, m, 1).strftime("%b '%y"),
+            "spending": spending_by_month.get((y, m), 0.0),
         }
-        for row in rows
+        for (y, m) in months_range
     ]

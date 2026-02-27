@@ -29,6 +29,7 @@ from app.transactions import models as transaction_models
 from app.bank_statements import models as bank_statement_models
 from app.categorization import models as categorization_models
 from app.budgets import models as budget_models
+from app.ml import models as ml_models
 
 target_metadata = Base.metadata
 

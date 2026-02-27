@@ -15,13 +15,25 @@ def categorize_with_overrides(
 
     Priority:
       1. User's manual category_overrides (category_source='manual', confidence=1.0)
-      2. Rule-based categorization (category_source='rule')
+      2. ML model prediction             (category_source='ml',     if confidence >= 0.7)
+      3. Rule-based categorization       (category_source='rule')
     """
     upper = description.upper()
     overrides = get_user_overrides(db, user_id)
     for override in overrides:
         if override.description_pattern.upper() in upper:
             return override.category, "manual", 1.0
+
+    # ── ML prediction ─────────────────────────────────────────────────────────
+    try:
+        from app.ml.categorizer import predict as ml_predict
+        ml_result = ml_predict(db, user_id, description)
+        if ml_result is not None:
+            ml_category, ml_confidence = ml_result
+            if ml_confidence >= 0.7:
+                return ml_category, "ml", ml_confidence
+    except Exception:
+        pass  # never let ML errors block the upload flow
 
     category, confidence = categorize_transaction(description)
     return category, "rule", confidence

@@ -22,10 +22,13 @@ def get_transaction_by_id(db: Session, txn_id: int) -> Transaction | None:
 def update_transaction(
     db: Session,
     txn: Transaction,
-    amount: Decimal | None = None,
+    date=None,
+    amount=None,
     description: str | None = None,
     category: str | None = None,
 ) -> Transaction:
+    if date is not None:
+        txn.date = date
     if amount is not None:
         txn.amount = amount
     if description is not None:

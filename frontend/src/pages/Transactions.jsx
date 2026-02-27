@@ -104,6 +104,12 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
         );
     };
 
+    const handleDateChange = (idx, newDate) => {
+        setRows((prev) =>
+            prev.map((row, i) => i !== idx ? row : { ...row, date: newDate })
+        );
+    };
+
     const handleTypeChange = (idx, newType) => {
         setRows((prev) =>
             prev.map((row, i) => {
@@ -223,9 +229,14 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                             <ConfidenceDot confidence={row.confidence} />
                                         </td>
 
-                                        {/* Date */}
+                                        {/* Date — editable */}
                                         <td className="px-4 py-3 text-sm text-text-secondary whitespace-nowrap">
-                                            {row.date}
+                                            <input
+                                                type="date"
+                                                value={row.date}
+                                                onChange={(e) => handleDateChange(idx, e.target.value)}
+                                                className="text-sm bg-bg-tertiary border border-border rounded-sm px-2 py-1 text-text-primary outline-none focus:border-brand cursor-pointer"
+                                            />
                                         </td>
 
                                         {/* Description */}
@@ -250,6 +261,11 @@ function ReviewModal({ preview, onConfirm, onCancel, confirming }) {
                                                 {catChanged && (
                                                     <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded">
                                                         edited
+                                                    </span>
+                                                )}
+                                                {!catChanged && row.category_source === "ml" && (
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                                                        ML
                                                     </span>
                                                 )}
                                             </div>
@@ -551,7 +567,20 @@ export default function Transactions() {
                                         key={txn.id}
                                         className="border-b border-border last:border-0 hover:bg-white/[0.03] transition-colors"
                                     >
-                                        <td className="p-4 text-sm text-text-secondary whitespace-nowrap">{txn.date}</td>
+                                        <td className="p-4 text-sm text-text-secondary whitespace-nowrap">
+                                            <input
+                                                type="date"
+                                                defaultValue={txn.date}
+                                                onBlur={(e) => {
+                                                    const newDate = e.target.value;
+                                                    if (!newDate || newDate === txn.date) return;
+                                                    api.put(`/transactions/${txn.id}`, { date: newDate })
+                                                        .then(fetchSaved)
+                                                        .catch(() => setError("Failed to update date."));
+                                                }}
+                                                className="text-sm bg-transparent border-b border-transparent hover:border-border focus:border-brand text-text-secondary outline-none cursor-pointer transition-colors"
+                                            />
+                                        </td>
                                         <td className="p-4 text-sm max-w-xs">
                                             <span className="block truncate" title={txn.description}>
                                                 {txn.description}

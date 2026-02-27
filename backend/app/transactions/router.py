@@ -513,7 +513,7 @@ def edit_transaction(
     if txn.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     return update_transaction(
-        db, txn, amount=payload.amount, description=payload.description, category=payload.category
+        db, txn, date=payload.date, amount=payload.amount, description=payload.description, category=payload.category
     )
 
 

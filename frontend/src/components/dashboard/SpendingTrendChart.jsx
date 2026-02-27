@@ -37,9 +37,11 @@ export default function SpendingTrendChart({ data = [], loading }) {
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.12)" />
                             <XAxis
                                 dataKey="month"
-                                tick={{ fill: "#8B92A8", fontSize: 12 }}
+                                tick={{ fill: "#8B92A8", fontSize: 11 }}
                                 axisLine={false}
                                 tickLine={false}
+                                interval={data.length > 6 ? 1 : 0}
+                                tickFormatter={(v) => v.split(" ")[0]}  // "Feb '25" → "Feb"
                             />
                             <YAxis
                                 tick={{ fill: "#8B92A8", fontSize: 12 }}

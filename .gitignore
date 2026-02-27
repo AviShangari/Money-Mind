@@ -58,3 +58,9 @@ dist-ssr/
 .env.production.local
 
 .claude/
+
+# ML models
+backend/models/
+
+# Uploaded bank statements
+backend/uploaded_statements/
